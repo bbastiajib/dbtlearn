@@ -1,0 +1,59 @@
+version: 2
+
+models:
+  - name: dim_listings_w_hosts
+    tests:
+      - dbt_expectations.expect_table_row_count_to_equal_other_table:
+          compare_model: source('airbnb', 'listings')
+
+    columns:
+      - name: price
+        description: "this price derived from raw_listings"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+              quantile: .99
+              min_value: 50
+              max_value: 500
+          - dbt_expectations.expect_column_max_to_be_between:
+              max_value: 5000
+              config:
+                severity: warn
+
+  - name: dim_listings
+    description: AirBnb Listing Cleaned Table
+    columns:
+
+      - name: listing_id
+        description: primary key
+        tests:
+          - not_null
+          - unique
+
+      - name: listing_name
+        description: name of the listing
+        tests:
+          - not_null
+
+      - name: host_id
+        description: host_id
+        tests:
+        - not_null
+        - relationships:
+            to: ref('dim_hosts')
+            field: host_id
+
+      - name: room_type
+        description: room type of the listing
+        tests:
+          - accepted_values:
+              values: ['Entire home/apt', 'Private room', 'Shared room', 'Hotel room']
+
+      - name: minimum_nights
+        # description: '{{ doc("dim_listing_minimum_nights")}}'
+        tests:
+          - positive_value
+
+
+
